@@ -4,6 +4,7 @@ import "time"
 
 type Vehicle struct {
 	ID              int64
+	ModelID         int64
 	Price           int
 	ManufactureYear int
 	Mileage         int

@@ -35,8 +35,6 @@ func main() {
 	// MIDDLEWARE
 	server.Use(gin.Recovery(), gin.Logger())
 
-	//ctrl := controllers.New(repository)
-
 	apiRoutes := server.Group("/api")
 	{
 		apiRoutes.GET("/vehicles", func(c *gin.Context) {
@@ -46,14 +44,19 @@ func main() {
 		})
 	}
 
-	//server.Static("css", ".templates/css")
-	server.LoadHTMLGlob("templates/*")
+	server.LoadHTMLGlob("templates/views/*")
 	viewRoutes := server.Group("/view")
 	{
 		viewRoutes.GET("/vehicles", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "index.html", gin.H{
-				"title":    "Vehicle list",
+			c.HTML(http.StatusOK, "vehicles.html", gin.H{
+				"title":    "Vehicles",
 				"vehicles": repository.FetchAll(ctx),
+			})
+		})
+		viewRoutes.GET("/models", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "models.html", gin.H{
+				"title":  "Models",
+				"models": repository.FetchAllModels(ctx),
 			})
 		})
 	}
