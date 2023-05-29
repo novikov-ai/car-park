@@ -10,6 +10,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"car-park/cmd"
+	"car-park/internal/controllers/models"
+	"car-park/internal/controllers/vehicles"
 	"car-park/internal/storage"
 )
 
@@ -28,38 +30,49 @@ func main() {
 	defer db.Close(context.Background())
 
 	repository := storage.New(db)
-	vehicles := repository.FetchAll(ctx)
+	vehicleProvider := vehicles.New(repository)
+	modelsProvider := models.New(repository)
 
 	server := gin.New()
 
 	// MIDDLEWARE
 	server.Use(gin.Recovery(), gin.Logger())
 
-	apiRoutes := server.Group("/api")
-	{
-		apiRoutes.GET("/vehicles", func(c *gin.Context) {
-			c.JSONP(http.StatusOK, gin.H{
-				"vehicles": vehicles,
-			})
+	apiVehicle := server.Group("/api/v1/vehicles")
+	apiVehicle.GET("", func(c *gin.Context) {
+		c.JSONP(http.StatusOK, gin.H{
+			"vehicles": vehicleProvider.FetchAll(ctx),
 		})
-	}
+	})
+
+	apiVehicleAdmin := apiVehicle.Group("/admin")
+	apiVehicleAdmin.GET("", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "vehicles_admin.html",
+			gin.H{
+				"models": modelsProvider.FetchAllModels(ctx),
+			})
+	})
+	apiVehicleAdmin.POST("/add", vehicleProvider.Create)
+	apiVehicleAdmin.POST("/update", vehicleProvider.Update)
+	apiVehicleAdmin.POST("/delete", vehicleProvider.Delete)
+
+	server.GET("/view/vehicle/redirect", func(c *gin.Context) {
+		c.Redirect(http.StatusFound, "/api/vehicle/admin/")
+	})
 
 	server.LoadHTMLGlob("templates/views/*")
-	viewRoutes := server.Group("/view")
-	{
-		viewRoutes.GET("/vehicles", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "vehicles.html", gin.H{
-				"title":    "Vehicles",
-				"vehicles": repository.FetchAll(ctx),
-			})
+	server.GET("/view/vehicles", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "vehicles.html", gin.H{
+			"title":    "Vehicles",
+			"vehicles": vehicleProvider.FetchAll(ctx),
 		})
-		viewRoutes.GET("/models", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "models.html", gin.H{
-				"title":  "Models",
-				"models": repository.FetchAllModels(ctx),
-			})
+	})
+	server.GET("/view/models", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "models.html", gin.H{
+			"title":  "Models",
+			"models": modelsProvider.FetchAllModels(ctx),
 		})
-	}
+	})
 
-	server.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	server.Run()
 }
