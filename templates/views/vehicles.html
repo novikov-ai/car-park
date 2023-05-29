@@ -5,7 +5,14 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
-<h2 style="margin: 0.5em">{{.title}}</h2>
+<h2 style="margin: 0.5em">
+        {{.title}}
+</h2>
+    <p>
+    <form action="/view/vehicle/redirect" method="get" >
+        <input type="submit" value="manage" style="margin: 1em">
+    </form>
+    </p>
     <table class="table" style="margin: 0.5em">
         <thead>
         <tr>
