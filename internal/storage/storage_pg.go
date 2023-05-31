@@ -18,5 +18,5 @@ func (c *Storage) Query(ctx context.Context, sql string, args ...any) (pgx.Rows,
 		return c.db.Query(ctx, sql)
 	}
 
-	return c.db.Query(ctx, sql, args)
+	return c.db.Query(ctx, sql, args...)
 }
