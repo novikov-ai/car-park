@@ -19,7 +19,7 @@ func New(st storage.Client) *Provider {
 	}
 }
 
-func (p *Provider) FetchAllModels(ctx context.Context) []models.Model {
+func (p *Provider) FetchAll(ctx context.Context) []models.Model {
 	query := `SELECT * FROM model`
 	resp, err := p.db.Query(ctx, query)
 	if err != nil {
@@ -37,7 +37,7 @@ func (p *Provider) FetchAllModels(ctx context.Context) []models.Model {
 		err = resp.Scan(&id, &brand, &vehicleType, &seats, &tank, &vehicleCapacity)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
-			continue
+			return []models.Model{}
 		}
 
 		mm = append(mm, models.Model{

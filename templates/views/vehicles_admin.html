@@ -14,22 +14,22 @@
     <tbody>
     <tr>
         <th style="vertical-align: top">
-            <form action="/api/vehicle/admin/add" method="post" style="margin: 2.5em">
+            <form action="/api/v1/vehicles/admin/add" method="post" style="margin: 2.5em">
                 <p>
                     <label style="font-size: 20px">Create a new vehicle</label><br>
                 </p>
 
                 <p>
-                    <select>
+                    <select name="model">
                         <option selected disabled>Select model</option>
                         {{range .models}}
-                        <option>{{.BrandName}}</option>
+                        <option value={{.ID}}>{{.BrandName}}</option>
                         {{end}}
                     </select>
                 </p>
 
                 <p>
-                    <select>
+                    <select name="color">
                         <option selected disabled>Select color</option>
                         <option>White</option>
                         <option>Black</option>
@@ -57,7 +57,7 @@
             </form>
         </th>
         <th style="vertical-align: top">
-            <form action="/api/vehicle/admin/update" method="post" style="margin: 2.5em">
+            <form action="/api/v1/vehicles/admin/update" method="post" style="margin: 2.5em">
                 <p>
                     <label style="font-size: 20px">Update a vehicle by ID</label><br>
                 </p>
@@ -103,7 +103,7 @@
             </form>
         </th>
         <th style="vertical-align: top">
-            <form action="/api/vehicle/admin/delete" method="post" style="margin: 2.5em">
+            <form action="/api/v1/vehicles/admin/delete" method="post" style="margin: 2.5em">
                 <p>
                     <label style="font-size: 20px">Delete a vehicle by ID</label><br>
                 </p>

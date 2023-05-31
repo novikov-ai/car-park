@@ -2,7 +2,9 @@ package vehicles
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -11,6 +13,20 @@ import (
 	"car-park/internal/models"
 	"car-park/internal/storage"
 )
+
+const timeRound = time.Second
+
+const (
+	idField      = "id"
+	modelField   = "model"
+	priceField   = "price"
+	yearField    = "year"
+	mileageField = "mileage"
+	colorField   = "color"
+	vinField     = "vin"
+)
+
+const redirectPath = "/view/vehicles/"
 
 type Provider struct {
 	db storage.Client
@@ -23,33 +39,33 @@ func New(st storage.Client) *Provider {
 }
 
 func (p *Provider) Create(c *gin.Context) {
+	defer redirectToView(c)
+
 	err := c.Request.ParseForm()
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
-	modelID, err := strconv.ParseInt(c.Request.Form.Get("model"), 10, 64)
-	if err != nil {
-		// toodo: handle
-		panic(err)
-	}
+	modelValue := c.Request.FormValue(modelField)
+	colorValue := c.Request.FormValue(colorField)
 
 	toInt := func(key string) (int, error) {
 		return strconv.Atoi(c.Request.Form.Get(key))
 	}
 
-	price, err := toInt("price")
-	year, err := toInt("year")
-	mileage, err := toInt("mileage")
-	color, err := toInt("color")
+	modelID, err := strconv.ParseInt(modelValue, 10, 64)
+	colorID, err := toInt(colorValue)
+	price, err := toInt(priceField)
+	year, err := toInt(yearField)
+	mileage, err := toInt(mileageField)
 
 	vehicle := models.Vehicle{
 		ModelID:         modelID,
 		Price:           price,
 		ManufactureYear: year,
 		Mileage:         mileage,
-		Color:           color,
-		VIN:             c.Request.Form.Get("vin"),
+		Color:           colorID,
+		VIN:             c.Request.Form.Get(vinField),
 	}
 
 	query := `INSERT INTO vehicle (model_id, price, manufacture_year, mileage, color, vin)
@@ -59,39 +75,39 @@ func (p *Provider) Create(c *gin.Context) {
 	resp, err := p.db.Query(context.Background(), query,
 		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN)
 
-	resp.Close()
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+	}
 
-	c.Redirect(http.StatusFound, "/view/vehicles/")
+	resp.Close()
 }
 
 func (p *Provider) Update(c *gin.Context) {
-	c.Redirect(http.StatusFound, "/view/vehicles/")
+	defer redirectToView(c)
 
 	err := c.Request.ParseForm()
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
-	modelID, err := strconv.ParseInt(c.Request.Form.Get("model"), 10, 64)
+	modelID, err := strconv.ParseInt(c.Request.Form.Get(modelField), 10, 64)
 	if err != nil {
-		// toodo: handle
-		panic(err)
+		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
 	toInt := func(key string) (int, error) {
 		return strconv.Atoi(c.Request.Form.Get(key))
 	}
 
-	id, err := strconv.ParseInt(c.Request.Form.Get("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Request.Form.Get(idField), 10, 64)
 	if err != nil {
-		// toodo: handle
-		panic(err)
+		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
-	price, err := toInt("price")
-	year, err := toInt("year")
-	mileage, err := toInt("mileage")
-	color, err := toInt("color")
+	price, err := toInt(priceField)
+	year, err := toInt(yearField)
+	mileage, err := toInt(mileageField)
+	color, err := toInt(colorField)
 
 	vehicle := models.Vehicle{
 		ModelID:         modelID,
@@ -99,7 +115,7 @@ func (p *Provider) Update(c *gin.Context) {
 		ManufactureYear: year,
 		Mileage:         mileage,
 		Color:           color,
-		VIN:             c.Request.Form.Get("vin"),
+		VIN:             c.Request.Form.Get(vinField),
 	}
 
 	query := `UPDATE vehicle 
@@ -108,14 +124,17 @@ SET model_id = $1, price = $2, manufacture_year = $3,
 WHERE id = $7`
 
 	resp, err := p.db.Query(context.Background(), query,
-		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN,
-		id)
+		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN, id)
+
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+	}
 
 	resp.Close()
 }
 
 func (p *Provider) Delete(c *gin.Context) {
-	defer c.Redirect(http.StatusFound, "/view/vehicles/")
+	defer redirectToView(c)
 
 	err := c.Request.ParseForm()
 	if err != nil {
@@ -125,7 +144,7 @@ func (p *Provider) Delete(c *gin.Context) {
 	b := c.Request.Form
 	print(b)
 
-	id, err := strconv.ParseInt(c.Request.Form.Get("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Request.Form.Get(idField), 10, 64)
 	if err != nil {
 		// toodo: handle
 		return
@@ -144,7 +163,8 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 	query := `SELECT * FROM vehicle`
 	resp, err := p.db.Query(ctx, query)
 	if err != nil {
-		panic(err)
+		fmt.Fprintf(os.Stderr, "query failed: %v\n", err)
+		return []models.Vehicle{}
 	}
 
 	var (
@@ -159,8 +179,14 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 	vehicles := make([]models.Vehicle, 0)
 	for resp.Next() {
 		err = resp.Scan(&id, &modelID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
+		if deleted != nil {
+			rounded := (*deleted).Round(timeRound)
+			deleted = &rounded
+		}
+
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
+			return []models.Vehicle{}
 		}
 		vehicles = append(vehicles, models.Vehicle{
 			ID:              id,
@@ -170,11 +196,15 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 			Mileage:         mileage,
 			Color:           color,
 			VIN:             vin,
-			CreatedAt:       created,
-			UpdatedAt:       updated,
+			CreatedAt:       created.Round(timeRound),
+			UpdatedAt:       updated.Round(timeRound),
 			DeletedAt:       deleted,
 		})
 	}
 
 	return vehicles
+}
+
+func redirectToView(c *gin.Context) {
+	c.Redirect(http.StatusFound, redirectPath)
 }

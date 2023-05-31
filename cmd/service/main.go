@@ -49,7 +49,7 @@ func main() {
 	apiVehicleAdmin.GET("", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "vehicles_admin.html",
 			gin.H{
-				"models": modelsProvider.FetchAllModels(ctx),
+				"models": modelsProvider.FetchAll(ctx),
 			})
 	})
 	apiVehicleAdmin.POST("/add", vehicleProvider.Create)
@@ -57,7 +57,7 @@ func main() {
 	apiVehicleAdmin.POST("/delete", vehicleProvider.Delete)
 
 	server.GET("/view/vehicle/redirect", func(c *gin.Context) {
-		c.Redirect(http.StatusFound, "/api/vehicle/admin/")
+		c.Redirect(http.StatusFound, "/api/v1/vehicles/admin/")
 	})
 
 	server.LoadHTMLGlob("templates/views/*")
@@ -70,7 +70,7 @@ func main() {
 	server.GET("/view/models", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "models.html", gin.H{
 			"title":  "Models",
-			"models": modelsProvider.FetchAllModels(ctx),
+			"models": modelsProvider.FetchAll(ctx),
 		})
 	})
 
