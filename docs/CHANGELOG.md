@@ -1,5 +1,20 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.4.0] - 2023-05-31
+
+### Added
+
+- add json tags for Vehicle model
+
+### Changed
+
+- errors handling
+- change api-path and clean-up
+
+### Fixed
+
+- fix storage Query() with args
+
 ## [0.3.0] - 2023-05-26
 
 ### Added
@@ -7,7 +22,7 @@
 - endpoint '/api/v1/vehicles/admin'
 - vehicles controller with CRUD: Create, Update, Delete
 
-### Edit
+### Changed
 
 - refactor storage with interface and MVC logic
 
