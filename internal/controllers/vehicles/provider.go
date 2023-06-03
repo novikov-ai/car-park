@@ -150,7 +150,6 @@ func (p *Provider) Delete(c *gin.Context) {
 		return
 	}
 
-	// todo: maybe just update delete field??
 	query := `DELETE FROM vehicle
 WHERE id=$1`
 
@@ -168,8 +167,8 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 	}
 
 	var (
-		id                          int64
-		modelID                     int64
+		id, modelID                 int64
+		enterpriseID                *int64
 		price, year, mileage, color int
 		vin                         string
 		created, updated            time.Time
@@ -178,7 +177,7 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 
 	vehicles := make([]models.Vehicle, 0)
 	for resp.Next() {
-		err = resp.Scan(&id, &modelID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
+		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
 		if deleted != nil {
 			rounded := (*deleted).Round(timeRound)
 			deleted = &rounded
@@ -191,6 +190,7 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 		vehicles = append(vehicles, models.Vehicle{
 			ID:              id,
 			ModelID:         modelID,
+			EnterpriseID:    enterpriseID,
 			Price:           price,
 			ManufactureYear: year,
 			Mileage:         mileage,
