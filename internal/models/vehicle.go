@@ -5,6 +5,7 @@ import "time"
 type Vehicle struct {
 	ID              int64      `json:"id"`
 	ModelID         int64      `json:"modelId"`
+	EnterpriseID    *int64     `json:"enterpriseId"`
 	Price           int        `json:"price"`
 	ManufactureYear int        `json:"year"`
 	Mileage         int        `json:"mileage"`
