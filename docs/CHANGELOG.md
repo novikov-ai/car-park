@@ -1,5 +1,19 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.5.0] - 2023-06-03
+
+### Added
+
+- new models: Enterprise & Driver
+- new providers for created models
+- add migration files for new tables
+
+### Changed
+
+- db init-file expand with new data
+- refactor main & vehicle provider
+- rename db-migrations 
+
 ## [0.4.0] - 2023-05-31
 
 ### Added
