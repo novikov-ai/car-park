@@ -1,5 +1,12 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.6.0] - 2023-06-07
+
+### Added
+
+- new Manager model
+- add basic Auth
+
 ## [0.5.0] - 2023-06-03
 
 ### Added
