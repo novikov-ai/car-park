@@ -32,3 +32,15 @@ VALUES
     (1, 3),
     (2, 2),
     (2, 3);
+
+INSERT INTO manager (full_name, age, salary)
+VALUES
+    ('Ivan Smirnov', 34, 120000),
+    ('Marry Green', 27, 90000);
+
+INSERT INTO manager_enterprise (manager_id, enterprise_id)
+VALUES
+    (1, 1),
+    (1, 2),
+    (2, 2),
+    (2, 3);
