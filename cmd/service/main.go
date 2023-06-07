@@ -27,6 +27,15 @@ func init() {
 
 const apiPath = "/api/v1"
 
+var creds = gin.H{
+	"ismirnov": map[string]interface{}{
+		"id": int64(1),
+	},
+	"mgreen": map[string]interface{}{
+		"id": int64(2),
+	},
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -39,9 +48,32 @@ func main() {
 	driversProvider := drivers.New(repository)
 	enterprisesProvider := enterprises.New(repository)
 
-	server := gin.New()
+	server := gin.Default()
 
-	// MIDDLEWARE
+	authorized := server.Group("/admin", gin.BasicAuth(gin.Accounts{
+		"ismirnov": "one",
+		"mgreen":   "two",
+	}))
+	authorized.GET("", func(c *gin.Context) {
+		user := c.MustGet(gin.AuthUserKey).(string)
+		if userData, ok := creds[user]; ok {
+			ud, ok := userData.(map[string]interface{})
+			if !ok {
+				return
+			}
+
+			userID, ok := ud["id"]
+			if v, ok := userID.(int64); ok {
+				enterprises := enterprisesProvider.FetchManagersOnly(c, v)
+				c.JSON(http.StatusOK, gin.H{
+					"enterprises": enterprises,
+				})
+			}
+		} else {
+			c.JSON(http.StatusOK, gin.H{"user": user, "secret": "NO SECRET :("})
+		}
+	})
+
 	server.Use(gin.Recovery(), gin.Logger())
 
 	apiEnterprises := server.Group(apiPath + "/enterprises")
