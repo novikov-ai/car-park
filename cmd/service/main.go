@@ -54,7 +54,8 @@ func main() {
 		"ismirnov": "one",
 		"mgreen":   "two",
 	}))
-	authorized.GET("", func(c *gin.Context) {
+
+	authorized.GET("enterprises", func(c *gin.Context) {
 		user := c.MustGet(gin.AuthUserKey).(string)
 		if userData, ok := creds[user]; ok {
 			ud, ok := userData.(map[string]interface{})
@@ -64,9 +65,29 @@ func main() {
 
 			userID, ok := ud["id"]
 			if v, ok := userID.(int64); ok {
-				enterprises := enterprisesProvider.FetchManagersOnly(c, v)
+				ee := enterprisesProvider.FetchAllByManagerID(c, v)
 				c.JSON(http.StatusOK, gin.H{
-					"enterprises": enterprises,
+					"enterprises": ee,
+				})
+			}
+		} else {
+			c.JSON(http.StatusOK, gin.H{"user": user, "secret": "NO SECRET :("})
+		}
+	})
+
+	authorized.GET("vehicles", func(c *gin.Context) {
+		user := c.MustGet(gin.AuthUserKey).(string)
+		if userData, ok := creds[user]; ok {
+			ud, ok := userData.(map[string]interface{})
+			if !ok {
+				return
+			}
+
+			userID, ok := ud["id"]
+			if v, ok := userID.(int64); ok {
+				vv := vehicleProvider.FetchAllByManagerID(c, v)
+				c.JSON(http.StatusOK, gin.H{
+					"vehicles": vv,
 				})
 			}
 		} else {
