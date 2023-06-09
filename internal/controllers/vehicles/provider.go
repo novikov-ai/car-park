@@ -208,3 +208,55 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
 func redirectToView(c *gin.Context) {
 	c.Redirect(http.StatusFound, redirectPath)
 }
+
+func (p *Provider) FetchAllByManagerID(ctx context.Context, managerID int64) []models.Vehicle {
+	query := `SELECT v.*
+FROM enterprise as e
+JOIN manager_enterprise as me on me.enterprise_id = e.id
+JOIN vehicle as v on v.enterprise_id = e.id
+WHERE manager_id = $1
+`
+	resp, err := p.db.Query(ctx, query, managerID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "query failed: %v\n", err)
+		return []models.Vehicle{}
+	}
+
+	var (
+		id, modelID                 int64
+		enterpriseID                *int64
+		price, year, mileage, color int
+		vin                         string
+		created, updated            time.Time
+		deleted                     *time.Time
+	)
+
+	vehicles := make([]models.Vehicle, 0)
+	for resp.Next() {
+		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
+		if deleted != nil {
+			rounded := (*deleted).Round(timeRound)
+			deleted = &rounded
+		}
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
+			return []models.Vehicle{}
+		}
+		vehicles = append(vehicles, models.Vehicle{
+			ID:              id,
+			ModelID:         modelID,
+			EnterpriseID:    enterpriseID,
+			Price:           price,
+			ManufactureYear: year,
+			Mileage:         mileage,
+			Color:           color,
+			VIN:             vin,
+			CreatedAt:       created.Round(timeRound),
+			UpdatedAt:       updated.Round(timeRound),
+			DeletedAt:       deleted,
+		})
+	}
+
+	return vehicles
+}
