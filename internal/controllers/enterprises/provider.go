@@ -53,7 +53,7 @@ func (p *Provider) FetchAll(ctx context.Context) []models.Enterprise {
 	return enterprises
 }
 
-func (p *Provider) FetchManagersOnly(ctx *gin.Context, managerID int64) []models.Enterprise {
+func (p *Provider) FetchAllByManagerID(ctx *gin.Context, managerID int64) []models.Enterprise {
 	query := `SELECT id, title, city, established
 FROM enterprise as e
 JOIN manager_enterprise as me on me.enterprise_id = e.id
