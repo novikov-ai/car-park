@@ -1,5 +1,26 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.8.0] - 2023-06-18
+
+### Added
+
+- add anti-csrf mechanism
+- add Fetcher ByManagerID
+
+### Changed
+
+- expand storage Client with QueryRow
+
+### Fixed
+
+- fix typo at init.sql
+
+## [0.7.0] - 2023-06-10
+
+### Added
+
+- add vehicles fetcher with basic auth
+
 ## [0.6.0] - 2023-06-07
 
 ### Added
