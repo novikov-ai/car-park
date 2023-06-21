@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	csrf "github.com/utrack/gin-csrf"
 
 	"car-park/cmd"
 	"car-park/internal/controllers/drivers"
@@ -50,10 +51,26 @@ func main() {
 
 	server := gin.Default()
 
+	// MIDDLEWARE
+	server.Use(gin.Recovery(), gin.Logger())
+
+	// AUTH endpoints
 	authorized := server.Group("/admin", gin.BasicAuth(gin.Accounts{
 		"ismirnov": "one",
 		"mgreen":   "two",
-	}))
+	}),
+		func(c *gin.Context) {
+			token := c.Request.Header.Get("X-Csrf-Token")
+			if token == "" || !validToken(token) {
+				c.String(http.StatusBadRequest, "access denied")
+				c.Abort()
+				return
+			}
+
+			c.Set("csrfToken", token)
+			c.String(http.StatusOK, csrf.GetToken(c))
+		},
+	)
 
 	authorized.GET("enterprises", func(c *gin.Context) {
 		user := c.MustGet(gin.AuthUserKey).(string)
@@ -95,8 +112,7 @@ func main() {
 		}
 	})
 
-	server.Use(gin.Recovery(), gin.Logger())
-
+	// OTHER endpoints
 	apiEnterprises := server.Group(apiPath + "/enterprises")
 	apiEnterprises.GET("", func(c *gin.Context) {
 		c.JSONP(http.StatusOK, gin.H{
@@ -137,9 +153,29 @@ func main() {
 				"models": modelsProvider.FetchAll(c),
 			})
 	})
-	apiVehicleAdmin.POST("/add", vehicleProvider.Create)
-	apiVehicleAdmin.POST("/update", vehicleProvider.Update)
-	apiVehicleAdmin.POST("/delete", vehicleProvider.Delete)
+	apiVehicleAdmin.POST("/add",
+		gin.BasicAuth(gin.Accounts{
+			"ismirnov": "one",
+			"mgreen":   "two",
+		}),
+		checkCSRF(),
+		vehicleProvider.Create)
+
+	apiVehicleAdmin.PUT("/update",
+		gin.BasicAuth(gin.Accounts{
+			"ismirnov": "one",
+			"mgreen":   "two",
+		}),
+		checkCSRF(),
+		vehicleProvider.Update)
+
+	apiVehicleAdmin.DELETE("/delete",
+		gin.BasicAuth(gin.Accounts{
+			"ismirnov": "one",
+			"mgreen":   "two",
+		}),
+		checkCSRF(),
+		vehicleProvider.Delete)
 
 	server.GET("/view/vehicle/redirect", func(c *gin.Context) {
 		c.Redirect(http.StatusFound, apiPath+"/vehicles/admin/")
@@ -160,4 +196,20 @@ func main() {
 	})
 
 	server.Run()
+}
+
+func checkCSRF() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Request.Header.Get("X-Csrf-Token")
+		if token == "" || !validToken(token) {
+			c.String(http.StatusBadRequest, "access denied")
+			c.Abort()
+			return
+		}
+	}
+}
+
+func validToken(token string) bool {
+	// todo: implement
+	return true
 }
