@@ -1,5 +1,12 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.9.0] - 2023-06-21
+
+### Added
+
+- script for models gen at database
+- factory for vehicles and drivers
+
 ## [0.8.0] - 2023-06-18
 
 ### Added
