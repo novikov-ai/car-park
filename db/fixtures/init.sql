@@ -9,7 +9,7 @@ INSERT INTO enterprise (title, city, established)
 VALUES
     ('Yandex', 'Moscow', '1997-09-23'),
     ('Get', 'Tel-Aviv', '2010-11-01'),
-    ('Uber', 'California', '2009-03-14');
+    ('Uber', 'California', '2009-03-14'),
     ('Airbnb', 'California', '2008-08-05');
 
 INSERT INTO vehicle (model_id, enterprise_id, price, manufacture_year, mileage, color, vin)
