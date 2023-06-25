@@ -1,5 +1,15 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.10.0] - 2023-06-24
+
+### Added
+
+- add pagination with query string (e.g. `limit=50&offset=2500`)
+
+### Changed
+
+- improve performance of script, which generates fixtures
+
 ## [0.9.0] - 2023-06-21
 
 ### Added
