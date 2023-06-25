@@ -158,9 +158,21 @@ WHERE id=$1`
 	resp.Close()
 }
 
-func (p *Provider) FetchAll(ctx context.Context) []models.Vehicle {
+func (p *Provider) FetchAll(c *gin.Context) []models.Vehicle {
 	query := `SELECT * FROM vehicle`
-	resp, err := p.db.Query(ctx, query)
+
+	offset := c.Query("offset")
+	o, err := strconv.Atoi(offset)
+	queryPagination := fmt.Sprintf("OFFSET %v", o)
+
+	limit := c.Query("limit")
+	l, err := strconv.Atoi(limit)
+
+	if l > 0 {
+		query += fmt.Sprintf("\nLIMIT %v %s", l, queryPagination)
+	}
+
+	resp, err := p.db.Query(c, query)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "query failed: %v\n", err)
 		return []models.Vehicle{}
