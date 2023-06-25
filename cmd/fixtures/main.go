@@ -4,12 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"math/rand"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -25,10 +24,15 @@ var (
 	vehiclesN, driversN string
 )
 
+/*
+Сгенерируйте для 3 предприятий по 3-5 тысяч машин и водителей (активный водитель для каждой 10-й машины например),
+и разберитесь, как через REST API получать их в режиме пагинации -- не все разом, а листать страничками по 20-50 машинок.
+*/
+
 func init() {
-	flag.StringVar(&enterprisesIDs, "enterprises", "1;2", "enterprises ID with ; delimiter")
-	flag.StringVar(&vehiclesN, "vehicles", "5", "vehicles quantity")
-	flag.StringVar(&driversN, "drivers", "5", "drivers quantity")
+	flag.StringVar(&enterprisesIDs, "enterprises", "1;2;3", "enterprises ID with ; delimiter")
+	flag.StringVar(&vehiclesN, "vehicles", "4000", "vehicles quantity")
+	flag.StringVar(&driversN, "drivers", "5000", "drivers quantity")
 
 	err := godotenv.Load()
 	if err != nil {
@@ -109,21 +113,27 @@ func mustParseValue(value string) int {
 func generateVehicles(entID int64, n int) []models.Vehicle {
 	vv := make([]models.Vehicle, 0, n)
 
+	wg := sync.WaitGroup{}
 	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-		v := models.Vehicle{
-			ID:              rand.Int63(),
-			ModelID:         int64(rand.Intn(4)), // todo according to db
-			EnterpriseID:    &entID,
-			Price:           15000 + rand.Intn(200_000_000),
-			ManufactureYear: 1967 + rand.Intn(56),
-			Mileage:         rand.Intn(300_000),
-			Color:           rand.Intn(4), // todo according to db
-			VIN:             randomVIN(),
-		}
+			v := models.Vehicle{
+				ID:              rand.Int63(),
+				ModelID:         int64(rand.Intn(4)), // todo according to db
+				EnterpriseID:    &entID,
+				Price:           15000 + rand.Intn(200_000_000),
+				ManufactureYear: 1967 + rand.Intn(56),
+				Mileage:         rand.Intn(300_000),
+				Color:           rand.Intn(4), // todo according to db
+				VIN:             randomVIN(),
+			}
 
-		vv = append(vv, v)
+			vv = append(vv, v)
+		}()
 	}
+	wg.Wait()
 
 	return vv
 }
@@ -134,28 +144,20 @@ func randomVIN() string {
 		return strconv.Itoa(s.Int())
 	}
 
-	resp, err := http.Get("https://randomvin.com/getvin.php?type=real")
-	if err != nil {
-		dummyVIN()
-	}
-	defer resp.Body.Close()
+	//resp, err := http.Get("https://randomvin.com/getvin.php?type=real")
+	//if err != nil {
+	//	dummyVIN()
+	//}
+	//defer resp.Body.Close()
+	//
+	//body, err := io.ReadAll(resp.Body)
+	//if err != nil {
+	//	dummyVIN()
+	//}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		dummyVIN()
-	}
+	//return string(body)
 
-	return string(body)
-}
-
-func retrieveIDs(vehicles []models.Vehicle) []int64 {
-	ids := make([]int64, 0, len(vehicles))
-
-	for _, v := range vehicles {
-		ids = append(ids, v.ID)
-	}
-
-	return ids
+	return dummyVIN()
 }
 
 func generateDrivers(entID int64, vehicles []int64, n int) []models.Driver {
