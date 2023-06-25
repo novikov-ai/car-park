@@ -195,7 +195,7 @@ func main() {
 		})
 	})
 
-	server.Run()
+	server.Run("127.0.0.1:2023")
 }
 
 func checkCSRF() gin.HandlerFunc {
