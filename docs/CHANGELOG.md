@@ -1,5 +1,22 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.0.0] - 2023-08-20
+
+### Added
+
+- add docker & make files
+- geo functionality
+- init sql-scripts
+- bad request & success pages
+- auth file with creds (temp)
+- entities: color, model, trip, report
+
+### Changed
+
+- update models (Vehicle, Enterprise)
+- refactor
+
+
 ## [0.10.0] - 2023-06-24
 
 ### Added
@@ -30,7 +47,7 @@
 
 ### Fixed
 
-- fix typo at init.sql
+- fix typo at 11-insert-data.sql
 
 ## [0.7.0] - 2023-06-10
 
