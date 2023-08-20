@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS vehicle (
     mileage                 int             NOT NULL,
     color                   int             NOT NULL,
     vin                     text            NOT NULL UNIQUE,
+    purchased_at            timestamp       NOT NULL,
     created_at              timestamptz     NOT NULL DEFAULT now(),
     updated_at              timestamptz     NOT NULL DEFAULT now(),
     deleted_at              timestamptz     NULL,

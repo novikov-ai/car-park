@@ -7,4 +7,5 @@ type Enterprise struct {
 	Title       string    `json:"title"`
 	City        string    `json:"city"`
 	Established time.Time `json:"established"`
+	UTC         int       `json:"utc"`
 }

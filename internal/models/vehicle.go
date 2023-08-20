@@ -11,6 +11,7 @@ type Vehicle struct {
 	Mileage         int        `json:"mileage"`
 	Color           int        `json:"colorId"`
 	VIN             string     `json:"vin"`
+	PurchasedAt     string     `json:"purchased"`
 	CreatedAt       time.Time  `json:"created"`
 	UpdatedAt       time.Time  `json:"updated"`
 	DeletedAt       *time.Time `json:"deleted"`
