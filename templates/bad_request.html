@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bad Request</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 100px auto;
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 5px;
+    }
+    .error-message {
+      text-align: center;
+      font-size: 24px;
+      color: #e74c3c;
+      margin-bottom: 30px;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      color: #3498db;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="error-message">Bad Request! Something went wrong.</div>
+  <a href="#" class="back-link" onclick="goBack()">Go back</a>
+</div>
+
+<script>
+  function goBack() {
+    window.location.href = "/admin/vehicles"
+  }
+</script>
+</body>
+</html>
