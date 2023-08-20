@@ -1,9 +1,9 @@
 package vehicles
 
 import (
+	"car-park/internal/constants"
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -14,7 +14,9 @@ import (
 	"car-park/internal/storage"
 )
 
-const timeRound = time.Second
+const (
+	timeRound = time.Second
+)
 
 const (
 	idField      = "id"
@@ -26,7 +28,7 @@ const (
 	vinField     = "vin"
 )
 
-const redirectPath = "/view/vehicles/"
+const redirectPath = "/admin/vehicles"
 
 type Provider struct {
 	db storage.Client
@@ -38,23 +40,22 @@ func New(st storage.Client) *Provider {
 	}
 }
 
-func (p *Provider) Create(c *gin.Context) {
-	defer redirectToView(c)
-
+func (p *Provider) Create(c *gin.Context) int {
 	err := c.Request.ParseForm()
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return 0
 	}
 
 	modelValue := c.Request.FormValue(modelField)
 	colorValue := c.Request.FormValue(colorField)
 
+	modelID := constants.Models[modelValue]
+	colorID := constants.Colors[colorValue]
+
 	toInt := func(key string) (int, error) {
 		return strconv.Atoi(c.Request.Form.Get(key))
 	}
 
-	modelID, err := strconv.ParseInt(modelValue, 10, 64)
-	colorID, err := toInt(colorValue)
 	price, err := toInt(priceField)
 	year, err := toInt(yearField)
 	mileage, err := toInt(mileageField)
@@ -68,32 +69,31 @@ func (p *Provider) Create(c *gin.Context) {
 		VIN:             c.Request.Form.Get(vinField),
 	}
 
-	query := `INSERT INTO vehicle (model_id, price, manufacture_year, mileage, color, vin)
+	query := `INSERT INTO vehicle (model_id, price, manufacture_year, mileage, color, vin, purchased_at)
     VALUES
-        ($1, $2, $3, $4, $5, $6)`
+        ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id`
 
-	resp, err := p.db.Query(context.Background(), query,
-		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN)
+	inserted := 0
+	err = p.db.QueryRow(context.Background(), query,
+		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear,
+		vehicle.Mileage, vehicle.Color, vehicle.VIN, time.Now()).Scan(&inserted)
 
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return 0
 	}
 
-	resp.Close()
+	return inserted
 }
 
-func (p *Provider) Update(c *gin.Context) {
-	defer redirectToView(c)
-
+func (p *Provider) Update(c *gin.Context) error {
 	err := c.Request.ParseForm()
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return err
 	}
 
-	modelID, err := strconv.ParseInt(c.Request.Form.Get(modelField), 10, 64)
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-	}
+	modelID := constants.Models[c.Request.FormValue(modelField)]
+	colorID := constants.Colors[c.Request.FormValue(colorField)]
 
 	toInt := func(key string) (int, error) {
 		return strconv.Atoi(c.Request.Form.Get(key))
@@ -101,20 +101,19 @@ func (p *Provider) Update(c *gin.Context) {
 
 	id, err := strconv.ParseInt(c.Request.Form.Get(idField), 10, 64)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return err
 	}
 
 	price, err := toInt(priceField)
 	year, err := toInt(yearField)
 	mileage, err := toInt(mileageField)
-	color, err := toInt(colorField)
 
 	vehicle := models.Vehicle{
 		ModelID:         modelID,
 		Price:           price,
 		ManufactureYear: year,
 		Mileage:         mileage,
-		Color:           color,
+		Color:           colorID,
 		VIN:             c.Request.Form.Get(vinField),
 	}
 
@@ -127,27 +126,23 @@ WHERE id = $7`
 		vehicle.ModelID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN, id)
 
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return err
 	}
 
 	resp.Close()
+
+	return nil
 }
 
-func (p *Provider) Delete(c *gin.Context) {
-	defer redirectToView(c)
-
+func (p *Provider) Delete(c *gin.Context) error {
 	err := c.Request.ParseForm()
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		return err
 	}
-
-	b := c.Request.Form
-	print(b)
 
 	id, err := strconv.ParseInt(c.Request.Form.Get(idField), 10, 64)
 	if err != nil {
-		// toodo: handle
-		return
+		return err
 	}
 
 	query := `DELETE FROM vehicle
@@ -156,10 +151,18 @@ WHERE id=$1`
 	resp, err := p.db.Query(context.Background(), query, id)
 
 	resp.Close()
+
+	return nil
 }
 
 func (p *Provider) FetchAll(c *gin.Context) []models.Vehicle {
-	query := `SELECT * FROM vehicle`
+	query := `
+SELECT
+    v.id, v.model_id, v.enterprise_id, v.price, v.manufacture_year, v.mileage, v.color, v.vin, v.purchased_at,
+    e.utc
+FROM vehicle v
+FULL JOIN enterprise e ON v.enterprise_id = e.id
+WHERE v.id IS NOT NULL`
 
 	offset := c.Query("offset")
 	o, err := strconv.Atoi(offset)
@@ -183,22 +186,24 @@ func (p *Provider) FetchAll(c *gin.Context) []models.Vehicle {
 		enterpriseID                *int64
 		price, year, mileage, color int
 		vin                         string
-		created, updated            time.Time
-		deleted                     *time.Time
+		purchased                   time.Time
+		utc                         *int
 	)
 
 	vehicles := make([]models.Vehicle, 0)
 	for resp.Next() {
-		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
-		if deleted != nil {
-			rounded := (*deleted).Round(timeRound)
-			deleted = &rounded
-		}
+		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &purchased, &utc)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
 			return []models.Vehicle{}
 		}
+
+		loc := time.UTC
+		if utc != nil {
+			loc = time.FixedZone(fmt.Sprintf("UTC %v", *utc), *utc*60*60)
+		}
+
 		vehicles = append(vehicles, models.Vehicle{
 			ID:              id,
 			ModelID:         modelID,
@@ -208,17 +213,11 @@ func (p *Provider) FetchAll(c *gin.Context) []models.Vehicle {
 			Mileage:         mileage,
 			Color:           color,
 			VIN:             vin,
-			CreatedAt:       created.Round(timeRound),
-			UpdatedAt:       updated.Round(timeRound),
-			DeletedAt:       deleted,
+			PurchasedAt:     purchased.In(loc).Format(time.RFC3339),
 		})
 	}
 
 	return vehicles
-}
-
-func redirectToView(c *gin.Context) {
-	c.Redirect(http.StatusFound, redirectPath)
 }
 
 func (p *Provider) FetchAllByManagerID(ctx context.Context, managerID int64) []models.Vehicle {
@@ -239,13 +238,13 @@ WHERE manager_id = $1
 		enterpriseID                *int64
 		price, year, mileage, color int
 		vin                         string
-		created, updated            time.Time
+		purchased, created, updated time.Time
 		deleted                     *time.Time
 	)
 
 	vehicles := make([]models.Vehicle, 0)
 	for resp.Next() {
-		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &created, &updated, &deleted)
+		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &purchased, &created, &updated, &deleted)
 		if deleted != nil {
 			rounded := (*deleted).Round(timeRound)
 			deleted = &rounded
@@ -264,6 +263,7 @@ WHERE manager_id = $1
 			Mileage:         mileage,
 			Color:           color,
 			VIN:             vin,
+			PurchasedAt:     purchased.String(),
 			CreatedAt:       created.Round(timeRound),
 			UpdatedAt:       updated.Round(timeRound),
 			DeletedAt:       deleted,
@@ -271,4 +271,130 @@ WHERE manager_id = $1
 	}
 
 	return vehicles
+}
+
+func (p *Provider) FetchAllByEnterpriseID(ctx context.Context, entID int64) []models.Vehicle {
+	query := `SELECT DISTINCT v.* 
+FROM enterprise as e
+JOIN manager_enterprise as me on me.enterprise_id = e.id
+JOIN vehicle as v on v.enterprise_id = e.id
+WHERE me.enterprise_id = $1
+ORDER BY v.id 
+`
+	resp, err := p.db.Query(ctx, query, entID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "query failed: %v\n", err)
+		return []models.Vehicle{}
+	}
+
+	var (
+		id, modelID                 int64
+		enterpriseID                *int64
+		price, year, mileage, color int
+		vin                         string
+		purchased, created, updated time.Time
+		deleted                     *time.Time
+	)
+
+	vehicles := make([]models.Vehicle, 0)
+	for resp.Next() {
+		err = resp.Scan(&id, &modelID, &enterpriseID, &price, &year, &mileage, &color, &vin, &purchased, &created, &updated, &deleted)
+		if deleted != nil {
+			rounded := (*deleted).Round(timeRound)
+			deleted = &rounded
+		}
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
+			return []models.Vehicle{}
+		}
+		vehicles = append(vehicles, models.Vehicle{
+			ID:              id,
+			ModelID:         modelID,
+			EnterpriseID:    enterpriseID,
+			Price:           price,
+			ManufactureYear: year,
+			Mileage:         mileage,
+			Color:           color,
+			VIN:             vin,
+			PurchasedAt:     purchased.String(),
+			CreatedAt:       created.Round(timeRound),
+			UpdatedAt:       updated.Round(timeRound),
+			DeletedAt:       deleted,
+		})
+	}
+
+	return vehicles
+}
+
+func (p *Provider) GetVehicleReportDaily(ctx context.Context, id int64,
+	start, end int64,
+) []models.VehicleReport {
+
+	query := `SELECT v.vin, tr.started_at, tr.ended_at, tr.track_length, tr.max_velocity, tr.max_acceleration
+	FROM trip as tr
+	JOIN vehicle as v ON v.id = tr.vehicle_id
+	WHERE tr.vehicle_id = $1 AND 
+      EXTRACT(EPOCH FROM tr.started_at) >= $2 AND 
+      EXTRACT(EPOCH FROM tr.ended_at) <= $3`
+
+	resp, err := p.db.Query(ctx, query, id, start, end)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "query failed: %v\n", err)
+		return []models.VehicleReport{}
+	}
+
+	var (
+		vehicleVIN                     string
+		startTime, endTime             time.Time
+		length, velocity, acceleration int
+	)
+
+	type dayReports struct {
+		started, ended time.Time
+		mileage        int
+	}
+
+	dr := make([]dayReports, 0, 0)
+
+	var dayOne *dayReports
+
+	i := 0
+	for resp.Next() {
+		err = resp.Scan(&vehicleVIN, &startTime, &endTime, &length, &velocity, &acceleration)
+		if err != nil {
+			continue
+		}
+
+		if dayOne == nil {
+			dayOne = &dayReports{started: startTime, ended: endTime, mileage: length}
+			dr = append(dr, *dayOne)
+			continue
+		}
+
+		if endTime.Before(dayOne.started.Add(time.Hour * 24)) {
+			dr[i].mileage += length
+		} else {
+			dayOne.ended = endTime
+			dayOne = nil
+			i++
+		}
+	}
+
+	reports := make([]models.VehicleReport, 0)
+	for _, d := range dr {
+		reports = append(reports, models.VehicleReport{
+			ID:      time.Now().Unix(),
+			Mileage: d.mileage,
+			Report: models.Report{
+				Title:     fmt.Sprintf("Отчет о поездках машины VIN: %s", vehicleVIN),
+				StartDate: d.started,
+				EndDate:   d.ended,
+				Result:    "Груз доставлен",
+				Type:      0,
+			},
+		})
+	}
+
+	return reports
 }
