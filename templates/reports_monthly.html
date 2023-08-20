@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel = "stylesheet" href = "https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<h2 style="margin-left: 1.25em; margin-top: 1em; alignment: center">
+{{.title}}
+</h2>
+<body>
+<div class="container">
+    <div class="row">
+        <table class="table table-striped" style="margin: 0.5em">
+            <thead>
+            <tr>
+                <th scope="col">Month</th>
+                <th scope="col">Mileage</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{range .data}}
+            <tr>
+                <th>{{.Date}}</th>
+                <th>{{.Mileage}}</th>
+            </tr>
+            {{end}}
+            <tr>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+
+</div>
+</body>
+</html>

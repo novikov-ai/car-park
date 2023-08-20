@@ -1,4 +1,4 @@
-package fixtures
+package main
 
 import (
 	"context"
@@ -9,24 +9,25 @@ import (
 	"car-park/internal/storage"
 )
 
-type Maker struct {
+type Factory struct {
 	db storage.Client
 }
 
-func New(st storage.Client) *Maker {
-	return &Maker{
+func New(st storage.Client) *Factory {
+	return &Factory{
 		db: st,
 	}
 }
 
-func (m *Maker) CreateVehicle(vehicle models.Vehicle, enterpriseID int64) int64 {
-	query := `INSERT INTO vehicle (model_id, enterprise_id, price, manufacture_year, mileage, color, vin)
+func (m *Factory) CreateVehicle(vehicle models.Vehicle, enterpriseID int64) int64 {
+	query := `INSERT INTO vehicle (model_id, enterprise_id, price, manufacture_year, mileage, color, vin, purchased_at)
     VALUES
-        ($1, $2, $3, $4, $5, $6, $7)
+        ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id`
 
 	row := m.db.QueryRow(context.Background(), query,
-		vehicle.ModelID, enterpriseID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color, vehicle.VIN)
+		vehicle.ModelID, enterpriseID, vehicle.Price, vehicle.ManufactureYear, vehicle.Mileage, vehicle.Color,
+		vehicle.VIN, vehicle.PurchasedAt)
 
 	var insertedID int64
 	if err := row.Scan(&insertedID); err != nil {
@@ -37,7 +38,7 @@ RETURNING id`
 	return insertedID
 }
 
-func (m *Maker) CreateDrivers(drivers []models.Driver) {
+func (m *Factory) CreateDrivers(drivers []models.Driver) {
 	query := `INSERT INTO driver (enterprise_id, active_car_id, age, salary, experience)
 VALUES
     ($1, $2, $3, $4, $5)`

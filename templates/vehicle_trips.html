@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.1.3/dist/css/bootstrap.min.css">
+    <style>
+        #map {
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+
+<h2 style="margin: 0.5em">
+    <p>{{.title}}</p>
+</h2>
+
+<div class="container">
+    <button class="btn-primary" onclick="getReport({{.trips}})">Daily Report</button>
+    <button class="btn-danger" onclick="clearMap()">Clear map</button>
+</div>
+
+<div class="table-responsive" style="height: 40vh">
+    <table class="table" style="margin: 0.5em;">
+        <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">StartedPoint</th>
+            <th scope="col">EndedPoint</th>
+            <th scope="col">StartedAt</th>
+            <th scope="col">EndedAt</th>
+            <th scope="col">Length</th>
+            <th scope="col">Velocity</th>
+            <th scope="col">Acceleration</th>
+        </tr>
+        </thead>
+        <tbody>
+        {{range .trips}}
+        <tr onclick="selectRow('{{.ID}}', {{.StartedAt}}, {{.EndedAt}})">
+            <td>{{.ID}}</td>
+            <td>{{.StartedPoint}}</td>
+            <td>{{.EndedPoint}}</td>
+            <td>{{.StartedAt}}</td>
+            <td>{{.EndedAt}}</td>
+            <td>{{.TrackLength}}</td>
+            <td>{{.MaxVelocity}}</td>
+            <td>{{.MaxAcceleration}}</td>
+        </tr>
+        {{end}}
+        </tbody>
+    </table>
+</div>
+
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/ol@v7.4.0/dist/ol.js"></script>
+<script>
+    function selectRow(id, start, end) {
+        var mapContainer = document.getElementById('map');
+        mapContainer.innerHTML = ''; // Clear the map container
+
+        var startConverted = new Date(start).getTime();
+        var endConverted = new Date(end).getTime();
+
+        fetch(`/api/gps/track?id=${id}&start=${startConverted}&end=${endConverted}`)
+            .then(response => response.json())
+            .then(data => {
+                const coordinates = data.track.coordinates;
+                const convertedCoordinates = coordinates.map(coord => [coord.lgn, coord.lat]);
+
+                var map = new ol.Map({
+                    target: 'map',
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM()
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat(convertedCoordinates[0]),
+                        zoom: 10
+                    })
+                });
+
+                const startedMarker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(convertedCoordinates[0])),
+                });
+
+                const endedMarker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(convertedCoordinates[convertedCoordinates.length - 1])),
+                });
+
+                let trackFeature;
+                if (convertedCoordinates.length >= 2) {
+                    const filteredCoordinates = filterLongSegments(convertedCoordinates);
+                    trackFeature = new ol.Feature({
+                        geometry: new ol.geom.LineString(filteredCoordinates.map(coord => ol.proj.fromLonLat(coord)))
+                    });
+                }
+
+                const trackSource = new ol.source.Vector({
+                    features: [trackFeature].filter(Boolean),
+                });
+
+                const markerSource = new ol.source.Vector({
+                    features: [startedMarker, endedMarker],
+                });
+
+                const greenMarkerStyle = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 10,
+                        fill: new ol.style.Fill({
+                            color: 'green',
+                        }),
+                    }),
+                });
+
+                const redMarkerStyle = new ol.style.Style({
+                    image: new ol.style.Circle({
+                        radius: 10,
+                        fill: new ol.style.Fill({
+                            color: 'red',
+                        }),
+                    }),
+                });
+
+                const trackStyle = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'rgba(0, 0, 255, 0.6)',
+                        width: 3,
+                    })
+                });
+
+                const markerLayer = new ol.layer.Vector({
+                    source: markerSource,
+                    style: function (feature) {
+                        if (feature === startedMarker) {
+                            return greenMarkerStyle;
+                        } else if (feature === endedMarker) {
+                            return redMarkerStyle;
+                        }
+                    },
+                });
+
+                const trackLayer = new ol.layer.Vector({
+                    source: trackSource,
+                    style: trackStyle,
+                });
+
+                map.addLayer(markerLayer);
+                map.addLayer(trackLayer);
+
+                if (convertedCoordinates.length >= 2) {
+                    const trackExtent = trackFeature.getGeometry().getExtent();
+                    map.getView().fit(trackExtent, { padding: [20, 20, 20, 20] });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching coordinates:', error);
+            });
+    }
+
+    function filterLongSegments(coordinates) {
+        const filteredCoordinates = [coordinates[0]];
+        for (let i = 1; i < coordinates.length - 1; i++) {
+            const segment = [coordinates[i - 1], coordinates[i], coordinates[i + 1]];
+            const lineString = new ol.geom.LineString(segment.map(coord => ol.proj.fromLonLat(coord)));
+            const segmentLength = lineString.getLength();
+            if (segmentLength <= 5000) {
+                filteredCoordinates.push(coordinates[i]);
+            }
+        }
+        filteredCoordinates.push(coordinates[coordinates.length - 1]);
+        return filteredCoordinates;
+    }
+
+    async function getReport(trips) {
+        var mapContainer = document.getElementById('map');
+        mapContainer.innerHTML = ''; // Clear the map container
+
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([0, 0]), // Update with an appropriate default center
+                zoom: 10
+            })
+        });
+
+        for (let i = 0; i < trips.length; i++) {
+            const id = trips[i].id;
+            const current = new Date(Date.now()).getTime();
+
+            try {
+                const url = `/api/gps/track?id=${id}&start=0&end=${current}`;
+                console.log(url)
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const coordinates = data.track.coordinates;
+                const convertedCoordinates = coordinates.map(coord => [coord.lgn, coord.lat]);
+
+                const startedMarker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(convertedCoordinates[0])),
+                });
+
+                const endedMarker = new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat(convertedCoordinates[convertedCoordinates.length - 1])),
+                });
+
+                let trackFeature;
+                if (convertedCoordinates.length >= 2) {
+                    const filteredCoordinates = filterLongSegments(convertedCoordinates);
+                    trackFeature = new ol.Feature({
+                        geometry: new ol.geom.LineString(filteredCoordinates.map(coord => ol.proj.fromLonLat(coord)))
+                    });
+                }
+
+                const trackSource = new ol.source.Vector({
+                    features: [trackFeature].filter(Boolean),
+                });
+
+                const markerSource = new ol.source.Vector({
+                    features: [startedMarker, endedMarker],
+                });
+
+                const trackStyle = new ol.style.Style({
+                    stroke: new ol.style.Stroke({
+                        color: 'rgba(0, 0, 255, 0.6)',
+                        width: 3,
+                    })
+                });
+
+                const trackLayer = new ol.layer.Vector({
+                    source: trackSource,
+                    style: trackStyle,
+                });
+
+                const markerLayer = new ol.layer.Vector({
+                    source: markerSource,
+                    style: markerStyle,
+                });
+
+                map.addLayer(trackLayer);
+                map.addLayer(markerLayer);
+
+
+            } catch (error) {
+                console.error(`Error fetching (/api/gps/track?id=${id}&start=0&end=${current}) coordinates:`, error);
+            }
+        }
+    }
+
+
+
+    function clearMap(){
+        var mapContainer = document.getElementById('map');
+        mapContainer.innerHTML = ''; // Clear the map container
+    }
+</script>
+</body>
+</html>
+</script>
+</body>
+</html>

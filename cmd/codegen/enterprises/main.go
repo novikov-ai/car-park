@@ -16,18 +16,12 @@ import (
 	"car-park/cmd"
 	"car-park/internal/models"
 	"car-park/internal/storage"
-	"car-park/internal/usecases/fixtures"
 )
 
 var (
 	enterprisesIDs      string
 	vehiclesN, driversN string
 )
-
-/*
-Сгенерируйте для 3 предприятий по 3-5 тысяч машин и водителей (активный водитель для каждой 10-й машины например),
-и разберитесь, как через REST API получать их в режиме пагинации -- не все разом, а листать страничками по 20-50 машинок.
-*/
 
 func init() {
 	flag.StringVar(&enterprisesIDs, "enterprises", "1;2;3", "enterprises ID with ; delimiter")
@@ -55,7 +49,7 @@ func main() {
 	d := mustParseValue(driversN)
 
 	repository := storage.New(db)
-	factory := fixtures.New(repository)
+	factory := New(repository)
 
 	for _, entID := range enterprises {
 		vehicles := generateVehicles(entID, v)
@@ -128,6 +122,7 @@ func generateVehicles(entID int64, n int) []models.Vehicle {
 				Mileage:         rand.Intn(300_000),
 				Color:           rand.Intn(4), // todo according to db
 				VIN:             randomVIN(),
+				PurchasedAt:     time.Now().Format("2006-01-02T15:04:05"),
 			}
 
 			vv = append(vv, v)
