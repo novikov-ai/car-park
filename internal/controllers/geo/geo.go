@@ -571,7 +571,7 @@ func parsePointToGpsPoint(point *string) *GPSPoint {
 //	request.Header.Set("Content-Type", "application/json")
 //
 //	cl := http.DefaultClient
-//	respGeo, err := cl.Do(request)
+//	respGeo, err := cl.ShowEnterpriseAndVehicleByManagerID(request)
 //	if err != nil {
 //		return []models.Trip{}, err
 //	}

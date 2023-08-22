@@ -3,8 +3,8 @@ package main
 import (
 	"bytes"
 	"car-park/cmd"
+	"car-park/internal/controllers/geo"
 	"car-park/internal/controllers/trips"
-	"car-park/internal/geo"
 	"car-park/internal/models"
 	"context"
 	"encoding/json"
