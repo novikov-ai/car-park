@@ -290,69 +290,6 @@ func fetchLocations() Locations {
 	return l
 }
 
-//type Locations struct {
-//	PostalCodes []struct {
-//		AdminCode1  string  `json:"adminCode1"`
-//		AdminName2  string  `json:"adminName2"`
-//		Lng         float64 `json:"lng"`
-//		CountryCode string  `json:"countryCode"`
-//		PostalCode  string  `json:"postalCode"`
-//		AdminName1  string  `json:"adminName1"`
-//		PlaceName   string  `json:"placeName"`
-//		Lat         float64 `json:"lat"`
-//	} `json:"postalCodes"`
-//}
-
-//const (
-//	earthRadiusMiles = 3958.8
-//	maxDistanceMiles = 3000.0
-//)
-//
-//func genStartEnd() (geo.GPSPoint, geo.GPSPoint) {
-//	for {
-//		coord1 := generateRandomCoordinate()
-//		coord2 := geo.GPSPoint{
-//			Longitude: coord1.Longitude + rand.Float64(),
-//			Latitude:  coord1.Latitude + rand.Float64(),
-//		}
-//
-//		return coord1, coord2
-//	}
-//}
-//
-//func generateRandomCoordinate() geo.GPSPoint {
-//	longitude := rand.Float64()*(77-41) + 41
-//	latitude := rand.Float64()*(169-19) + 19
-//
-//	return geo.GPSPoint{
-//		Latitude:  latitude,
-//		Longitude: longitude,
-//	}
-//}
-//
-//func distanceBetweenCoordinates(coord1, coord2 geo.GPSPoint) float64 {
-//	// Convert latitude and longitude to radians
-//	lat1 := degToRad(coord1.Latitude)
-//	lat2 := degToRad(coord2.Latitude)
-//	lon1 := degToRad(coord1.Longitude)
-//	lon2 := degToRad(coord2.Longitude)
-//
-//	// Calculate the difference in latitudes and longitudes
-//	deltaLat := lat2 - lat1
-//	deltaLon := lon2 - lon1
-//
-//	// Haversine formula to calculate the distance between two points on the Earth's surface
-//	a := math.Pow(math.Sin(deltaLat/2), 2) + math.Cos(lat1)*math.Cos(lat2)*math.Pow(math.Sin(deltaLon/2), 2)
-//	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-//	distanceMiles := earthRadiusMiles * c
-//
-//	return distanceMiles
-//}
-//
-//func degToRad(deg float64) float64 {
-//	return deg * (math.Pi / 180)
-//}
-
 type Locations struct {
 	TotalResultsCount int `json:"totalResultsCount"`
 	Geonames          []struct {
