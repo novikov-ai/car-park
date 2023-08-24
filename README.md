@@ -42,6 +42,8 @@ The Car Park is a web-based application that allows managers to efficiently mana
 
 ### Car Park Telegram Bot
 
+- Bot is available [here](https://github.com/novikov-ai/car-park-bot/)
+
 ![resources](resources/bot.jpg)
 
 ## Getting Started
