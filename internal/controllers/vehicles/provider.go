@@ -398,3 +398,42 @@ func (p *Provider) GetVehicleReportDaily(ctx context.Context, id int64,
 
 	return reports
 }
+
+func (p *Provider) SumMileageByVehicle(ctx context.Context, vehicleID int64,
+	start, end *time.Time) int64 {
+	query := `SELECT SUM(tr.track_length)
+FROM vehicle as v
+JOIN enterprise as en ON v.enterprise_id = en.id
+JOIN trip as tr ON v.id = tr.vehicle_id
+WHERE en.id = $1 AND
+	EXTRACT(EPOCH FROM tr.started_at) >= $2 AND
+	EXTRACT(EPOCH FROM tr.started_at) <= $3;`
+
+	if start == nil {
+		zeroTime := time.Unix(0, 0)
+		start = &zeroTime
+	}
+
+	if end == nil {
+		now := time.Now()
+		end = &now
+	}
+
+	resp, err := p.db.Query(ctx, query, vehicleID, start.Unix(), end.Unix())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "unable to proceed query: %v\n", err)
+		return 0
+	}
+
+	var sum int64
+
+	for resp.Next() {
+		err = resp.Scan(&sum)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "scan failed: %v\n", err)
+			return 0
+		}
+	}
+
+	return sum
+}

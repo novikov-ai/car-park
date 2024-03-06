@@ -38,7 +38,7 @@ func setupRoutes(server *gin.Engine, ctrl *controllers.Controllers) {
 	groupAPI.GET("/vehicles", ctrl.Vehicles.ShowAllJSON)
 	groupAPI.GET("/drivers", ctrl.Drivers.ShowAllJSON)
 	groupAPI.GET("/enterprises", ctrl.Enterprises.ShowAllJSON)
-	groupAPI.GET("/enterprises/report", ctrl.Enterprises.SumMileageJSON)
+	groupAPI.GET("/enterprises/report", ctrl.Vehicles.SumMileageJSON)
 
 	groupVehicleAPI := groupAPI.Group("/vehicle")
 	groupVehicleAPI.POST("/new", ctrl.Vehicles.Create)

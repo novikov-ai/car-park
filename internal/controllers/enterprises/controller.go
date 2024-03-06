@@ -1,7 +1,6 @@
 package enterprises
 
 import (
-	"car-park/internal/controllers/tools/query"
 	"car-park/internal/models"
 	"car-park/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -22,16 +21,6 @@ func NewCtrl(storage storage.Client) *Controller {
 func (ctrl *Controller) ShowAllJSON(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"enterprises": ctrl.provider.FetchAll(c),
-	})
-}
-
-func (ctrl *Controller) SumMileageJSON(c *gin.Context) {
-	c.Request.ParseForm()
-
-	id, start, end := query.ParseQueryParams(c)
-
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"mileage": ctrl.provider.SumMileageByVehicle(c, id, start, end),
 	})
 }
 

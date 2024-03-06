@@ -1,13 +1,14 @@
 package vehicles
 
 import (
-	"car-park/internal/controllers/tools/query"
+	"car-park/internal/controllers/tools/qparser"
 	"car-park/internal/models"
 	"car-park/internal/storage"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Controller struct {
@@ -67,7 +68,13 @@ func (ctrl *Controller) Delete(c *gin.Context) {
 }
 
 func (ctrl *Controller) GetReportJSON(c *gin.Context) {
-	vehicle, start, end := query.ParseQueryParamsIdStartEndUnix(c)
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	vehicle := queryParser.GetVehicle()
+	start, end := queryParser.GetStartTimeUnix(), queryParser.GetEndTimeUnix()
 
 	reports := ctrl.provider.GetVehicleReportDaily(c, vehicle, start, end)
 
@@ -96,7 +103,13 @@ func (ctrl *Controller) GetReportByVehicle(c *gin.Context) {
 	//period := c.Request.Form.Get("period")
 	//report := c.Request.Form.Get("report")
 
-	vehicleID, start, end := query.GetVehicleStartEndTimeUnix(c)
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	vehicleID := queryParser.GetVehicle()
+	start, end := queryParser.GetStartTimeUnix(), queryParser.GetEndTimeUnix()
 
 	var vr []models.VehicleReport
 
@@ -196,4 +209,20 @@ func (ctrl *Controller) ShowAllByEnterpriseID(c *gin.Context) {
 
 func (ctrl *Controller) FetchRawByManagerID(c *gin.Context, id int64) []models.Vehicle {
 	return ctrl.provider.FetchAllByManagerID(c, id)
+}
+
+func (ctrl *Controller) SumMileageJSON(c *gin.Context) {
+	c.Request.ParseForm()
+
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	id := queryParser.GetVehicle()
+	start, end := queryParser.GetStartTime(), queryParser.GetEndTime()
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"mileage": ctrl.provider.SumMileageByVehicle(c, id, start, end),
+	})
 }

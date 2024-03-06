@@ -1,11 +1,12 @@
 package geo
 
 import (
-	"car-park/internal/controllers/tools/query"
+	"car-park/internal/controllers/tools/qparser"
 	"car-park/internal/storage"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 const iso8601 = "2006-01-02T15:04:05Z07:00"
@@ -21,7 +22,12 @@ func NewCtrl(storage storage.Client) *Controller {
 }
 
 func (ctrl *Controller) ShowAllTracksJSON(c *gin.Context) {
-	_, start, end := query.ParseQueryParamsIdStartEndUnix(c)
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	start, end := queryParser.GetStartTimeUnix(), queryParser.GetEndTimeUnix()
 
 	trackParam := c.Request.FormValue("id")
 	trackID, err := strconv.Atoi(trackParam)
@@ -45,7 +51,14 @@ func (ctrl *Controller) ShowAllTracksJSON(c *gin.Context) {
 }
 
 func (ctrl *Controller) ShowAllTripsJSON(c *gin.Context) {
-	vehicle, start, end := query.ParseQueryParamsIdStartEndDates(c)
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	vehicle := queryParser.GetVehicle()
+	start, end := queryParser.GetStartTime(), queryParser.GetEndTime()
+
 	startValue, endValue := "", ""
 	if start != nil {
 		startValue = start.Format(iso8601)
@@ -65,7 +78,14 @@ func (ctrl *Controller) ShowAllTripsJSON(c *gin.Context) {
 }
 
 func (ctrl *Controller) ShowTripsByVehicle(c *gin.Context) {
-	vehicle, start, end := query.ParseQueryParamsIdStartEndDates(c)
+	queryParser, err := qparser.New(c.Request.URL)
+	if err != nil {
+		return
+	}
+
+	vehicle := queryParser.GetVehicle()
+	start, end := queryParser.GetStartTime(), queryParser.GetEndTime()
+
 	startValue, endValue := "", ""
 	if start != nil {
 		startValue = start.Format(iso8601)
